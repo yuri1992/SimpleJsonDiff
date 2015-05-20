@@ -1,0 +1,182 @@
+<html>
+    <head>
+        <!-- Latest compiled and minified CSS -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+
+        <!-- Optional theme -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+        <!-- Latest compiled and minified JavaScript -->
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+    </head>
+<body>
+
+<div class="row" >
+  <div class="col-md-offset-2 col-md-8" id='main'>
+    <div class="progress" id="progress_bar">
+      <div class="progress-bar progress-bar-success progress-bar-striped" 
+      role="progressbar" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100" style="width: 40%">
+        <span class="sr-only">40% Complete (success)</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+
+<script type="text/javascript">
+/*
+    GET Parameters:
+        showSuccess = True| Default False, Will Show Success Massages
+
+    Comparing the new object aginst the old one,
+    check by order
+    obj[x].field === obj[x].field 
+
+*/
+
+
+var object_compare = function(object_old,object_new,output) {
+    if (output === 'undefined')
+        output = 'html'
+    this.config = initalGETParams()
+    this.obj_old = object_old
+    this.obj_new = object_new
+    this.output = 'html';
+    this.init();
+}
+
+object_compare.prototype = {
+    init : function() {
+        this.compare(this.obj_old,this.obj_new)
+    },
+    compare : function(obj1, obj2, pre) {
+        if (typeof(pre) === 'undefined')
+            pre = '';
+
+        for (var i in obj1) {
+            pre_ = [pre,i].join('.')
+            if (typeof(obj2[i]) === 'undefined') {
+                this._criticalPrint(pre_+' Dosent Exists On New Object')
+            }
+            if (typeof(obj1[i]) === 'object') {
+                this._loging(pre_)
+                this.compare(obj1[i],obj2[i],pre_)
+            } else {
+                if (!this.equalType(obj1[i],obj2[i]) ||
+                    !this.equalValue(obj1[i],obj2[i])) {
+                    this._printError(pre_+ ' Dosent Equal: old: '+obj1[i]+' new: '+obj2[i])
+                } else {
+                    console.log(this.config)
+                    if (typeof(this.config.showSuccess) !== 'undefined' && this.config.showSuccess === "true")
+                        this._succesful('key: '+pre_+' Equal')
+                }
+           }
+        }
+    },
+    equalType : function(val,val2) {
+        if (typeof(val) !== typeof(val2))
+            return false;
+        return true;
+    },
+    equalValue : function(val,val2) {
+        if (val != val2)
+            return false;
+        return true;
+    },
+    pointer : function() {
+
+    },
+    _loging :function(msg) {
+        if (this.output == 'log')
+            console.log('comparing object key:'+msg)
+        else {
+            var log = document.createElement('div')
+            log.classList.add('loging')
+            
+            log.innerHTML = msg
+            this.addHtmlLog(log)
+        }
+    },
+    _printError : function(msg) {
+        if (this.output == 'log')
+            console.log(msg)
+        else {
+            var log = jQuery('<div class="alert alert-warning" role="alert">'+
+                              '<span class="glyphicon glyphicon-remove" aria-hidden="true"></span>'+
+                              '<span class="sr-only">Error:</span> '+msg+'</div>');
+            this.addHtmlLog(log)
+        }
+    },
+    _succesful : function(msg) {
+        if (this.output == 'log') {
+            console.log('--------------')
+            console.log(msg)
+            console.log('--------------')
+        } else {
+            var log = jQuery('<div class="alert alert-success" role="alert">'+
+                              '<span class="glyphicon glyphicon-flag" aria-hidden="true"></span>'+
+                              '<span class="sr-only">Error:</span> '+msg+'</div>');
+            this.addHtmlLog(log)
+        }
+    },
+    _criticalPrint :function(msg) {
+        if (this.output == 'log') {
+            console.log('--------------')
+            console.log(msg)
+            console.log('--------------')
+        } else {
+            var log = jQuery('<div class="alert alert-danger" role="alert">'+
+                              '<span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>'+
+                              '<span class="sr-only">Error:</span> '+msg+'</div>');
+            this.addHtmlLog(log)
+        }
+    },
+    addHtmlLog : function(el) {
+       jQuery('#main').append(el)
+    }
+};
+
+
+
+function progressBar() {
+    w_c = jQuery("#progress_bar div").css('width');
+    w_c = parseInt(w_c.replace('px',''))
+    w_c += 15;
+    jQuery("#progress_bar div").css({'width':w_c+'px'});
+}
+
+var terminate = setInterval(function() {
+    progressBar() },1000);
+
+$.getJSON('http://local.ynet.co.il:8000/iphone/ynet/2', function(data) {
+    var object_new = data
+    $.getJSON('http://local.ynet.co.il:8000/iphone/json/0,,2-IP-NC,00.js', function(data) {
+        clearTimeout(terminate)
+        jQuery("#progress_bar").remove()
+        var obj = new object_compare(data.components,object_new)
+    });
+});
+
+
+function initalGETParams() {
+    var params = window.location.search;
+    var obj = {};
+    params = params.replace('?','');
+    pairs = params.split('&');
+    for (var i =0;i<pairs.length; i++) {
+        pair = pairs[i].split('=');
+        obj[pair[0]]=pair[1];
+    }
+    return obj; 
+}
+
+
+
+
+
+
+
+</script>
+</body>
+</html>
