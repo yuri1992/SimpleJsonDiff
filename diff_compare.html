@@ -10,14 +10,28 @@
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
     </head>
 <body>
-
+<style>
+#log_panel{
+  position: fixed;
+  left: 0;
+  top: 0;
+  padding: 14px;
+  border: 1px solid red;
+  margin: 10px;
+}
+#progress_bar {
+    margin-top:50px;
+}
+</style>
 <div class="row" >
   <div class="col-md-offset-2 col-md-8" id='main'>
     <div class="progress" id="progress_bar">
+
       <div class="progress-bar progress-bar-success progress-bar-striped" 
       role="progressbar" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100" style="width: 40%">
         <span class="sr-only">40% Complete (success)</span>
       </div>
+      Loading Json....
     </div>
   </div>
 
@@ -36,19 +50,51 @@
 */
 
 
-var object_compare = function(object_old,object_new,output) {
+(function($) {
+    function progressBar() {
+        w_c = jQuery("#progress_bar div").css('width');
+        w_c = parseInt(w_c.replace('px',''))
+        w_c += 15;
+        jQuery("#progress_bar div").css({'width':w_c+'px'});
+    }
+
+    var terminate = setInterval(function() {
+        progressBar() },1000);
+
+var object_compare = function(output) {
     if (output === 'undefined')
         output = 'html'
-    this.config = initalGETParams()
-    this.obj_old = object_old
-    this.obj_new = object_new
+    this.config = this._initalGETParams()
+    this.categoryId = this.config.categoryId || 2;
+    this.obj_old = {}
+    this.obj_new = {}
+    this.fetch();
     this.output = 'html';
-    this.init();
+    this._warning_count = 0;
+    this._critical_count = 0;
 }
 
 object_compare.prototype = {
     init : function() {
-        this.compare(this.obj_old,this.obj_new)
+        try {
+            this.compare(this.obj_old,this.obj_new)
+        }
+        catch(err) {
+            this.addHtmlLog(jQuery('<div class="fatal_error">'+err+'</div>'))
+        }
+        this.addStatusLog();
+    },
+    fetch : function () {
+        var self = this;
+        $.getJSON('http://local.ynet.co.il:8000/iphone/ynet/'+self.categoryId, function(data) {
+            self.obj_new = data
+            $.getJSON('http://local.ynet.co.il:8000/iphone/json/0,,'+self.categoryId+'-IP-NC,00.js', function(data) {
+                    clearTimeout(terminate)
+                    jQuery("#progress_bar").remove()
+                    self.obj_old = data.components;
+                    self.init();
+                });
+        });
     },
     compare : function(obj1, obj2, pre) {
         if (typeof(pre) === 'undefined')
@@ -58,6 +104,7 @@ object_compare.prototype = {
             pre_ = [pre,i].join('.')
             if (typeof(obj2[i]) === 'undefined') {
                 this._criticalPrint(pre_+' Dosent Exists On New Object')
+                continue;
             }
             if (typeof(obj1[i]) === 'object') {
                 this._loging(pre_)
@@ -84,8 +131,11 @@ object_compare.prototype = {
             return false;
         return true;
     },
-    pointer : function() {
-
+    addStatusLog : function() {
+        this.addHtmlLog(jQuery('<div id="log_panel">'
+                                +'<li>Critical Errors:</li>'+this._critical_count
+                                +'<li>Warning Errors:</li>'+this._warning_count
+                                +'</div>'));
     },
     _loging :function(msg) {
         if (this.output == 'log')
@@ -99,6 +149,7 @@ object_compare.prototype = {
         }
     },
     _printError : function(msg) {
+        this._warning_count++;
         if (this.output == 'log')
             console.log(msg)
         else {
@@ -121,6 +172,7 @@ object_compare.prototype = {
         }
     },
     _criticalPrint :function(msg) {
+        this._critical_count++;
         if (this.output == 'log') {
             console.log('--------------')
             console.log(msg)
@@ -134,43 +186,23 @@ object_compare.prototype = {
     },
     addHtmlLog : function(el) {
        jQuery('#main').append(el)
+    },
+    _initalGETParams :function() {
+        var params = window.location.search;
+        var obj = {};
+        params = params.replace('?','');
+        pairs = params.split('&');
+        for (var i =0;i<pairs.length; i++) {
+            pair = pairs[i].split('=');
+            obj[pair[0]]=pair[1];
+        }
+        return obj; 
     }
 };
+    
+(new object_compare());
 
-
-
-function progressBar() {
-    w_c = jQuery("#progress_bar div").css('width');
-    w_c = parseInt(w_c.replace('px',''))
-    w_c += 15;
-    jQuery("#progress_bar div").css({'width':w_c+'px'});
-}
-
-var terminate = setInterval(function() {
-    progressBar() },1000);
-
-$.getJSON('http://local.ynet.co.il:8000/iphone/ynet/2', function(data) {
-    var object_new = data
-    $.getJSON('http://local.ynet.co.il:8000/iphone/json/0,,2-IP-NC,00.js', function(data) {
-        clearTimeout(terminate)
-        jQuery("#progress_bar").remove()
-        var obj = new object_compare(data.components,object_new)
-    });
-});
-
-
-function initalGETParams() {
-    var params = window.location.search;
-    var obj = {};
-    params = params.replace('?','');
-    pairs = params.split('&');
-    for (var i =0;i<pairs.length; i++) {
-        pair = pairs[i].split('=');
-        obj[pair[0]]=pair[1];
-    }
-    return obj; 
-}
-
+})(jQuery);
 
 
 
