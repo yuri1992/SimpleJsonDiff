@@ -66,6 +66,7 @@ var object_compare = function(output) {
         output = 'html'
     this.config = this._initalGETParams()
     this.categoryId = this.config.categoryId || 2;
+    this.version = this.config.version || 'IPAD';
     this.obj_old = {}
     this.obj_new = {}
     this.fetch();
@@ -86,12 +87,12 @@ object_compare.prototype = {
     },
     fetch : function () {
         var self = this;
-        $.getJSON('http://local.ynet.co.il:8000/iphone/ynet/'+self.categoryId, function(data) {
+        $.getJSON('http://local.ynet.co.il:8000/iphone/ynet/'+self.categoryId+'?version='+self.version, function(data) {
             self.obj_new = data
-            $.getJSON('http://local.ynet.co.il:8000/iphone/json/0,,'+self.categoryId+'-IP-NC,00.js', function(data) {
+            $.getJSON('http://local.ynet.co.il:8000/iphone/json/0,,'+self.categoryId+'-'+self.version+'-NC,00.js', function(data) {
                     clearTimeout(terminate)
                     jQuery("#progress_bar").remove()
-                    self.obj_old = data.components;
+                    self.obj_old = data;
                     self.init();
                 });
         });
